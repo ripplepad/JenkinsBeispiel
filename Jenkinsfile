@@ -10,33 +10,41 @@ pipeline {
     stages {
         stage('Checkout Development Branch') {
             steps {
-                // Pull the latest code from the development branch
-                git branch: "${DEV_BRANCH}", url: "${GIT_REPO}"
+                script {
+                    // Checkout the development branch
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "*/${DEV_BRANCH}"]],
+                        userRemoteConfigs: [[url: GIT_REPO, credentialsId: 'your-credentials-id']]
+                    ])
+                }
             }
         }
 
         stage('Run Tests') {
             steps {
-                // Install dependencies (if any) and run tests
-                sh 'pip install -r requirements.txt || true'
-                sh 'pytest'
+                script {
+                    // Install dependencies and run tests
+                    sh '''
+                        pip install -r requirements.txt || true
+                        pytest
+                    '''
+                }
             }
         }
 
         stage('Merge and Push to Main') {
             when {
                 expression {
-                    // Proceed only if the tests passed (exit code 0)
-                    return currentBuild.result == null || currentBuild.result == 'SUCCESS'
+                    // Proceed only if the tests passed
+                    currentBuild.result == null || currentBuild.result == 'SUCCESS'
                 }
             }
             steps {
-                // Merge development into main and push
                 script {
                     sh '''
                         git config user.name "ripplepad"
-                        git config user.email "kerne-prosaisch.4l@icloud.com
-"
+                        git config user.email "kerne-prosaisch.4l@icloud.com"
 
                         # Checkout the main branch
                         git checkout ${MAIN_BRANCH}
