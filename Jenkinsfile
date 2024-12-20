@@ -11,7 +11,6 @@ pipeline {
         stage('Checkout Development Branch') {
             steps {
                 script {
-                    // Checkout the development branch
                     checkout([
                         $class: 'GitSCM',
                         branches: [[name: "*/${DEV_BRANCH}"]],
@@ -24,9 +23,12 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Install dependencies and run tests
+                    // Create and activate a virtual environment, then install dependencies and run tests
                     sh '''
-                        pip install -r requirements.txt || true
+                        python3 -m venv venv
+                        . venv/bin/activate
+                        pip install -r requirements.txt
+                        export PYTHONPATH=$PWD
                         pytest
                     '''
                 }
@@ -36,7 +38,6 @@ pipeline {
         stage('Merge and Push to Main') {
             when {
                 expression {
-                    // Proceed only if the tests passed
                     currentBuild.result == null || currentBuild.result == 'SUCCESS'
                 }
             }
@@ -46,13 +47,8 @@ pipeline {
                         git config user.name "ripplepad"
                         git config user.email "kerne-prosaisch.4l@icloud.com"
 
-                        # Checkout the main branch
                         git checkout ${MAIN_BRANCH}
-
-                        # Merge development into main
                         git merge ${DEV_BRANCH} --no-ff
-
-                        # Push the changes to the main branch
                         git push origin ${MAIN_BRANCH}
                     '''
                 }
